@@ -1,5 +1,6 @@
 package cn.davidma.tinymobfarm.common.tileentity;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -75,9 +76,10 @@ public class TileEntityMobFarm extends TileEntity implements ITickable {
 	private void generateDrops() {
 		ItemStack lasso = this.getLasso();
 		String lootTableLocation = NBTHelper.getBaseTag(lasso).getString(NBTHelper.MOB_LOOTTABLE_LOCATION);
-		if (lootTableLocation.isEmpty()) return;
-		
-		List<ItemStack> drops = EntityHelper.generateLoot(new ResourceLocation(lootTableLocation), this.world);
+		List<ItemStack> drops = new ArrayList<>();
+		if (!lootTableLocation.isEmpty()) {
+			drops.addAll(EntityHelper.generateLoot(new ResourceLocation(lootTableLocation), this.world));
+		}
 		String entityId = NBTHelper.getBaseTag(lasso).getCompoundTag(NBTHelper.MOB_DATA).getString("id");
 		this.applyCustomDrops(drops, entityId);
 		TinyMobFarmOutputEvent event = new TinyMobFarmOutputEvent(this.world, this.pos, lasso, entityId, drops.toArray(new ItemStack[0]));
@@ -149,7 +151,12 @@ public class TileEntityMobFarm extends TileEntity implements ITickable {
 			String[] parts = itemPart.split(":");
 			if (parts.length < 4) continue;
 			String entityKey = parts[0] + ":" + parts[1];
-			if (!entityKey.equals(entityId)) continue;
+			String altEntityKey = null;
+			String namespacePrefix = parts[0] + ".";
+			if (parts[1].startsWith(namespacePrefix)) {
+				altEntityKey = parts[0] + ":" + parts[1].substring(namespacePrefix.length());
+			}
+			if (!entityKey.equals(entityId) && (altEntityKey == null || !altEntityKey.equals(entityId))) continue;
 			StringBuilder itemIdBuilder = new StringBuilder();
 			for (int i = 2; i < parts.length; i++) {
 				if (i > 2) itemIdBuilder.append(":");
