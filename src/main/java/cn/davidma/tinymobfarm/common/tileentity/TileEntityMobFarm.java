@@ -6,6 +6,8 @@ import javax.annotation.Nullable;
 
 import cn.davidma.tinymobfarm.common.block.BlockMobFarm;
 import cn.davidma.tinymobfarm.common.event.TinyMobFarmOutputEvent;
+import cn.davidma.tinymobfarm.common.event.TinyMobFarmWorkEvent;
+import cn.davidma.tinymobfarm.core.ConfigTinyMobFarm;
 import cn.davidma.tinymobfarm.core.EnumMobFarm;
 import cn.davidma.tinymobfarm.core.Reference;
 import cn.davidma.tinymobfarm.core.util.EntityHelper;
@@ -17,6 +19,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.item.EntityItem;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
@@ -76,6 +79,7 @@ public class TileEntityMobFarm extends TileEntity implements ITickable {
 		
 		List<ItemStack> drops = EntityHelper.generateLoot(new ResourceLocation(lootTableLocation), this.world);
 		String entityId = NBTHelper.getBaseTag(lasso).getCompoundTag(NBTHelper.MOB_DATA).getString("id");
+		this.applyCustomDrops(drops, entityId);
 		TinyMobFarmOutputEvent event = new TinyMobFarmOutputEvent(this.world, this.pos, lasso, entityId, drops.toArray(new ItemStack[0]));
 		if (MinecraftForge.EVENT_BUS.post(event)) return;
 		ItemStack[] output = event.getOutput();
@@ -111,6 +115,55 @@ public class TileEntityMobFarm extends TileEntity implements ITickable {
 		}
 		
 	}
+
+	private void applyCustomDrops(List<ItemStack> drops, String entityId) {
+		if (ConfigTinyMobFarm.MOB_EXTRA_DROPS == null || entityId == null || entityId.isEmpty()) return;
+		for (String rule: ConfigTinyMobFarm.MOB_EXTRA_DROPS) {
+			if (rule == null || rule.trim().isEmpty()) continue;
+			String trimmed = rule.trim();
+			int lastColon = trimmed.lastIndexOf(':');
+			if (lastColon <= 0 || lastColon >= trimmed.length() - 1) continue;
+			String left = trimmed.substring(0, lastColon);
+			String chanceStr = trimmed.substring(lastColon + 1);
+			double chance;
+			try {
+				chance = Double.parseDouble(chanceStr);
+			} catch (NumberFormatException ex) {
+				continue;
+			}
+			if (chance > 1.0d) chance = chance / 100.0d;
+			if (chance <= 0.0d) continue;
+
+			String itemPart = left;
+			int atIndex = left.lastIndexOf('@');
+			int meta = 0;
+			if (atIndex >= 0 && atIndex < left.length() - 1) {
+				itemPart = left.substring(0, atIndex);
+				try {
+					meta = Integer.parseInt(left.substring(atIndex + 1));
+				} catch (NumberFormatException ex) {
+					meta = 0;
+				}
+			}
+
+			String[] parts = itemPart.split(":");
+			if (parts.length < 4) continue;
+			String entityKey = parts[0] + ":" + parts[1];
+			if (!entityKey.equals(entityId)) continue;
+			StringBuilder itemIdBuilder = new StringBuilder();
+			for (int i = 2; i < parts.length; i++) {
+				if (i > 2) itemIdBuilder.append(":");
+				itemIdBuilder.append(parts[i]);
+			}
+			String itemId = itemIdBuilder.toString();
+			Item item = Item.getByNameOrId(itemId);
+			if (item == null) continue;
+			if (this.world.rand.nextDouble() <= chance) {
+				ItemStack stack = new ItemStack(item, 1, Math.max(0, meta));
+				if (!stack.isEmpty()) drops.add(stack);
+			}
+		}
+	}
 	
 	private void updateModel() {
 		if (this.world.isRemote) {
@@ -134,7 +187,12 @@ public class TileEntityMobFarm extends TileEntity implements ITickable {
 	
 	public boolean isWorking() {
 		if (this.mobFarmData == null || this.getLasso().isEmpty() || this.isPowered()) return false;
-		return this.mobFarmData.isLassoValid(this.getLasso());
+		ItemStack lasso = this.getLasso();
+		String entityId = NBTHelper.getBaseTag(lasso).getCompoundTag(NBTHelper.MOB_DATA).getString("id");
+		TinyMobFarmWorkEvent event = new TinyMobFarmWorkEvent(this.world, this.pos, lasso, entityId);
+		if (MinecraftForge.EVENT_BUS.post(event)) return false;
+		if (event.isForcePass()) return true;
+		return this.mobFarmData.isLassoValid(lasso);
 	}
 	
 	public void updateRedstone() {

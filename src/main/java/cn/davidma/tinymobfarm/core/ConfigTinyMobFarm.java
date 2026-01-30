@@ -16,4 +16,8 @@ public class ConfigTinyMobFarm {
 	@Comment("Blacklist of mobs that cannot be captured (i.e. minecraft:cow for cow).")
 	@Name("Mob Blacklist")
 	public static String[] MOB_BLACKLIST = {};
+
+	@Comment("Extra drops per mob. Format: entityID:itemID@metadata:chance (chance supports 0-1 or 0-100). Example: minecraft:zombie:minecraft:diamond@0:0.05")
+	@Name("Mob Extra Drops")
+	public static String[] MOB_EXTRA_DROPS = {};
 }
