@@ -5,6 +5,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import cn.davidma.tinymobfarm.common.block.BlockMobFarm;
+import cn.davidma.tinymobfarm.common.event.TinyMobFarmOutputEvent;
 import cn.davidma.tinymobfarm.core.EnumMobFarm;
 import cn.davidma.tinymobfarm.core.Reference;
 import cn.davidma.tinymobfarm.core.util.EntityHelper;
@@ -25,6 +26,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.WorldServer;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
@@ -73,6 +75,17 @@ public class TileEntityMobFarm extends TileEntity implements ITickable {
 		if (lootTableLocation.isEmpty()) return;
 		
 		List<ItemStack> drops = EntityHelper.generateLoot(new ResourceLocation(lootTableLocation), this.world);
+		String entityId = NBTHelper.getBaseTag(lasso).getCompoundTag(NBTHelper.MOB_DATA).getString("id");
+		TinyMobFarmOutputEvent event = new TinyMobFarmOutputEvent(this.world, this.pos, lasso, entityId, drops.toArray(new ItemStack[0]));
+		if (MinecraftForge.EVENT_BUS.post(event)) return;
+		ItemStack[] output = event.getOutput();
+		drops.clear();
+		if (output != null) {
+			for (ItemStack stack: output) {
+				if (stack != null && !stack.isEmpty()) drops.add(stack);
+			}
+		}
+		if (drops.isEmpty()) return;
 		for (EnumFacing facing: EnumFacing.values()) {
 			TileEntity tileEntity = this.world.getTileEntity(this.pos.offset(facing));
 			if (tileEntity != null) {
