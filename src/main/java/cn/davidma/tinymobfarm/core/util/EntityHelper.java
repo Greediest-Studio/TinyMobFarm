@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 import cn.davidma.tinymobfarm.core.ConfigTinyMobFarm;
+import cn.davidma.tinymobfarm.core.util.MobFarmOutputRegistry;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -26,6 +27,7 @@ public class EntityHelper {
 	
 	public static boolean isMobBlacklisted(EntityLiving entityLiving) {
 		String mobName = getRegistryName(entityLiving);
+		if (MobFarmOutputRegistry.isBlacklisted(mobName)) return true;
 		for (String i: ConfigTinyMobFarm.MOB_BLACKLIST) {
 			if (mobName.equalsIgnoreCase(i)) {
 				return true;

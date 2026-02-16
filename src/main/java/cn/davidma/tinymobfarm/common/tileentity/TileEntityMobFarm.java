@@ -13,6 +13,7 @@ import cn.davidma.tinymobfarm.core.EnumMobFarm;
 import cn.davidma.tinymobfarm.core.Reference;
 import cn.davidma.tinymobfarm.core.util.EntityHelper;
 import cn.davidma.tinymobfarm.core.util.FakePlayerHelper;
+import cn.davidma.tinymobfarm.core.util.MobFarmOutputRegistry;
 import cn.davidma.tinymobfarm.core.util.NBTHelper;
 
 import net.minecraft.block.state.IBlockState;
@@ -119,8 +120,9 @@ public class TileEntityMobFarm extends TileEntity implements ITickable {
 	}
 
 	private void applyCustomDrops(List<ItemStack> drops, String entityId) {
-		if (ConfigTinyMobFarm.MOB_EXTRA_DROPS == null || entityId == null || entityId.isEmpty()) return;
-		for (String rule: ConfigTinyMobFarm.MOB_EXTRA_DROPS) {
+		if (entityId == null || entityId.isEmpty()) return;
+		if (ConfigTinyMobFarm.MOB_EXTRA_DROPS != null) {
+			for (String rule: ConfigTinyMobFarm.MOB_EXTRA_DROPS) {
 			if (rule == null || rule.trim().isEmpty()) continue;
 			String trimmed = rule.trim();
 			int lastColon = trimmed.lastIndexOf(':');
@@ -169,7 +171,9 @@ public class TileEntityMobFarm extends TileEntity implements ITickable {
 				ItemStack stack = new ItemStack(item, 1, Math.max(0, meta));
 				if (!stack.isEmpty()) drops.add(stack);
 			}
+			}
 		}
+		drops.addAll(MobFarmOutputRegistry.getExtraDrops(entityId, this.world.rand));
 	}
 	
 	private void updateModel() {

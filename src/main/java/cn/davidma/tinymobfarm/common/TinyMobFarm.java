@@ -4,6 +4,7 @@ import java.util.List;
 
 import cn.davidma.tinymobfarm.client.gui.HandlerGui;
 import cn.davidma.tinymobfarm.common.block.BlockMobFarm;
+import cn.davidma.tinymobfarm.common.compat.CraftTweakerCompat;
 import cn.davidma.tinymobfarm.common.tileentity.TileEntityMobFarm;
 import cn.davidma.tinymobfarm.core.IProxy;
 import cn.davidma.tinymobfarm.core.Reference;
@@ -19,6 +20,7 @@ import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
@@ -40,6 +42,9 @@ public class TinyMobFarm {
 	@EventHandler
 	public static void preInit(FMLPreInitializationEvent event) {
 		proxy.preInit();
+		if (Loader.isModLoaded("crafttweaker")) {
+			CraftTweakerCompat.init();
+		}
 	}
 	
 	@EventHandler
